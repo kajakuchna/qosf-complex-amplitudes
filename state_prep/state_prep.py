@@ -35,11 +35,19 @@ def householder_unitary_for_state(psi: np.ndarray) -> np.ndarray:
     e1 = np.zeros(d, dtype=np.complex128); e1[0] = 1.0 + 0.0j
     if np.allclose(psi, e1, atol=1e-12):
         return np.eye(d, dtype=np.complex128)
-    v = e1 - psi
+    
+    if abs(psi[0]) > 0:
+        alpha = psi[0] / abs(psi[0])          # unit-modulus complex
+    else:
+        alpha = 1.0 + 0.0j                    # arbitrary; psi[0]==0 -> no phase info
+    psi_prime = np.conjugate(alpha) * psi     # (psi')_0 is now real and >= 0
+
+    v = e1 - psi_prime
     beta = np.vdot(v, v)
     if beta <= 1e-32:
-        return np.eye(d, dtype=np.complex128)
-    U = np.eye(d, dtype=np.complex128) - 2.0 * np.outer(v, np.conjugate(v)) / beta
+        return alpha * np.eye(d, dtype=np.complex128)
+    H = np.eye(d, dtype=np.complex128) - 2.0 * np.outer(v, np.conjugate(v)) / beta
+    U = alpha * H
     return U
 
 def prepare_state_unitary(amplitudes: Iterable[complex]) -> Tuple[np.ndarray, np.ndarray]:
@@ -61,5 +69,5 @@ def global_phase_align(x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, comple
     inner = np.vdot(x, y)
     if np.isclose(inner, 0.0, atol=1e-14):
         return y, 1.0 + 0.0j
-    phase = inner / abs(inner)
+    phase = np.conj(inner) / abs(inner)
     return y * phase, phase
